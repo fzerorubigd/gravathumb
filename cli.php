@@ -21,9 +21,11 @@ $tmp = new Gravatile(
     64
 );
 
-$count = $tmp->buildTile();
+$count = $tmp->buildTile('horizontal');
 $json = array(
     'size' => 64,
+    'width' => 64,
+    'height' => 64,
     'count' => $count
 );
 

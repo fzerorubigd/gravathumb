@@ -1,0 +1,36 @@
+<html>
+<head>
+    <title>Example tile</title>
+    <meta http-equiv="content-type" content="text/html;charset=utf-8">
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <script type="text/javascript">
+        $(document).ready(function() {
+            var tileContainer = $("#tiles");
+            var background = "/tile.jpeg";
+            var jsonUrl = "/tile.json";
+
+            $.ajax(
+                    {url: jsonUrl,
+                        success: function (data) {
+                            var json = JSON.parse(data);
+                            var i = 1;
+                            while (i <= json.count) {
+                                var tile = $("<div></div>")
+                                        .css({"width": json.width, "height": json.height, "float": "left"})
+                                        .addClass("single-tile")
+                                        .css({"background-image": "url(" + background + "?count=" + json.count + ")",
+                                            "background-position": "0px " + (i * json.height) + "px" })
+                                i++;
+                                tile.appendTo(tileContainer);
+                            }
+                        }
+                    });
+        });
+    </script>
+</head>
+
+<body>
+<div id="tiles"></div>
+</body>
+
+</html>
