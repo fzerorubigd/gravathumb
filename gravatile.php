@@ -14,28 +14,14 @@ class Gravatile
     private $default;
 
     /**
-     * @param array $emails
-     * @param int $size
-     * @param string $default
-     * @param string $cache
-     */
-    public function __construct(array $emails, $size = 64, $default = 'mm', $cache = './cache')
-    {
-        $this->emails = $emails;
-        $this->size = (int)$size;
-        $this->cache = $cache;
-        $this->default = $default;
-    }
-
-    /**
      * Create tiles
      *
+     * @param int $count how many item is available?
      * @param string $orientation orientation, vertical or horizontal
-     * @param string $target the target
      *
-     * @return int the real count
+     * @return resource
      */
-    public function buildTile($orientation = 'vertical', $target = './tile.jpeg')
+    public function buildTile(&$count, $orientation = 'vertical')
     {
         $count = 0;
         $width = $height = count($this->emails) * $this->size;
@@ -60,56 +46,63 @@ class Gravatile
             }
         }
 
-        imagejpeg($image, $target);
-        imagedestroy($image);
-
-        return $count;
+        return $image;
     }
 
-    private function getImage($email)
+    /**
+     * @param array $emails
+     * @param int $size
+     * @param string $default
+     * @param string $cache
+     */
+    public function __construct(array $emails, $size = 64, $default = 'monsterid', $cache = './cache')
     {
-        $hash = md5(strtolower($email));
+
+        foreach ($emails as $email) {
+            if (strpos($email, '@') > 0) {
+                echo strlen(strtolower(trim($email))) . ' ' . strtolower(trim($email)) . PHP_EOL;
+                $this->emails[] = md5(strtolower(trim($email)));
+            } else {
+                // This is the real md5
+                $this->emails[] = $email;
+            }
+        }
+        $this->size = (int)$size;
+        $this->cache = $cache;
+        $this->default = $default;
+    }
+
+    private function getImage($hash)
+    {
         $file = $this->cache . '/' . $this->size . $this->default . $hash;
         if ($this->cache) {
             $files = glob($file . '.*');
             if ($realFile = array_shift($files)) {
                 return $this->createImageBaseOnFile($realFile);
             }
-
         }
 
         $data = null;
-        $ext = 'jpg';
-        while (!$data) {
+        while (!$data) { // I don't know why but some time data is null :/
             $url = 'http://www.gravatar.com/avatar/' .
                 $hash . '.png?s=' . $this->size . '&d=' . $this->default;
 
             $curl = curl_init($url);
 
-            curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
+            //curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
             curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
             //curl_setopt($curl, CURLOPT_HEADER, 1);
 
             $data = curl_exec($curl);
 
-            // FUCK GRAVATAR!!!!! image headers are not correct!!!
-            //list($header, $data) = explode("\r\n\r\n", $resp, 2);
-            //if (preg_match('/filename="[^.]+\.([^"]+)/', $header, $matches)) {
-            //    $ext = $matches[1];
-            //}
-
-            if (trim(substr($data, 1,3)) == 'PNG') {
-                $ext = 'png';
-            }
-
-            if (!is_dir(dirname($file . '.' . $ext))) {
-                mkdir(dirname($file . '.' . $ext), 0777, true);
+            if (!is_dir(dirname($file))) {
+                mkdir(dirname($file), 0777, true);
             }
             if ($data) {
-                file_put_contents($file . '.' . $ext, $data);
+                $file = $this->writeFile($data, $file);
             }
         }
-        return $this->createImageBaseOnFile($file . '.' . $ext);
+        return $this->createImageBaseOnFile($file);
     }
 
     /**
@@ -120,23 +113,50 @@ class Gravatile
      * @return resource
      * @throws Exception
      */
-    private function createImageBaseOnFile($file) {
+    private function createImageBaseOnFile($file)
+    {
         $info = pathinfo($file);
         $ext = $info['extension'];
 
         switch (strtolower($ext)) {
-            case 'png' :
-                $im = imagecreatefrompng($file);
-                break;
-            case 'jpeg':
-            case 'jpg':
-                $im  = imagecreatefromjpeg($file);
-                break;
-            default:
-                $im = null;
+        case 'png' :
+            $im = imagecreatefrompng($file);
+            break;
+        case 'jpeg':
+        case 'jpg':
+            $im = imagecreatefromjpeg($file);
+            break;
+        default:
+            $im = null;
         }
 
         return $im;
+    }
+
+    private function writeFile($data, $file)
+    {
+        // FUCK GRAVATAR!!!!! image headers are not correct!!!
+        //list($header, $data) = explode("\r\n\r\n", $resp, 2);
+        //if (preg_match('/filename="[^.]+\.([^"]+)/', $header, $matches)) {
+        //    $ext = $matches[1];
+        //}
+        file_put_contents($file, $data);
+        if (function_exists('finfo_open')) {
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $fileInfoArray = explode('/', finfo_file($finfo, $file));
+            $ext = end($fileInfoArray);
+            finfo_close($finfo);
+        } else {
+            if (trim(substr($data, 1, 3)) == 'PNG') {
+                $ext = 'png';
+            } else {
+                $ext = 'jpg';
+            }
+        }
+
+        rename($file, $file . '.' . $ext);
+
+        return $file . '.' . $ext;
     }
 }
 

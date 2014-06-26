@@ -2,23 +2,23 @@
 <head>
     <title>Example tile</title>
     <meta http-equiv="content-type" content="text/html;charset=utf-8">
-    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
     <script type="text/javascript">
         $(document).ready(function() {
             var tileContainer = $("#tiles");
-            var background = "/tile.jpeg";
-            var jsonUrl = "/tile.json";
+            var background = "/web.php/";
+            var jsonUrl = "/web.php/tile.json";
 
             $.ajax(
-                    {url: jsonUrl,
-                        success: function (data) {
-                            var json = JSON.parse(data);
+                    jsonUrl,
+                    {
+                        success: function (json) {
                             var i = 1;
                             while (i <= json.count) {
                                 var tile = $("<div></div>")
                                         .css({"width": json.width, "height": json.height, "float": "left"})
                                         .addClass("single-tile")
-                                        .css({"background-image": "url(" + background + "?count=" + json.count + ")",
+                                        .css({"background-image": "url(" + background  + json.count + ".png)",
                                             "background-position": "0px " + (i * json.height) + "px" })
                                 i++;
                                 tile.appendTo(tileContainer);
